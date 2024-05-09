@@ -96,8 +96,14 @@ int main() {
         i2cWriteByteData(handle, i, 0x00);
     }
 
+    unsigned char binaryData = 0;
+    
+
+
+    printf("%d\n", binaryData);
+
     // Allumer puis éteindre la 1ère rangée (0)
-    i2cWriteByteData(handle, 0x0e, 0x42);
+    i2cWriteByteData(handle, 0x0e, 0xFF);
     time_sleep(1);
     i2cWriteByteData(handle, 0x0e, 0x00);
 
