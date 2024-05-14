@@ -1,4 +1,4 @@
-# IdOEquipe5Pi
+# IdOEquipe6Pi
 _En cadre avec le cours d'Introduction aux plateformes IdO 420-410_
 
 1. gérer le bouton, envoyer son état au container (1 ou 0).
