@@ -14,8 +14,9 @@
 #define ADR_SYS_MATRICE 0x20
 #define ADR_AFFICHAGE_MATRICE 0x80
 // Tcp
+#define BUFFER_SIZE 1024
 #define PORT 8888
-#define DEST_IP "127.0.0.1"
+#define DEST_IP "10.10.0.230"
 
 void sendStatus() {
     int sock = 0;
@@ -32,6 +33,7 @@ void sendStatus() {
 
     gpioSetMode(BTN_PIN, PI_INPUT);
     int myStatus = gpioRead(BTN_PIN);
+
     // For some reason, have to invert btn status
     myStatus = (myStatus == 0) ? 1 : 0;
     char myTeam[10] = "6";
@@ -41,7 +43,62 @@ void sendStatus() {
     // Envoyer le message et fermer la connexion
     send(sock, statusData, strlen(statusData), 0);
     close(sock);
-    printf("SENT - %s\n", statusData);
+    printf("SENT - %s\n\r", statusData);
+}
+
+char receiveStatus() {
+    int socket_local, socket_dist;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
+
+    // Créer le socket et initialiser l'adresse
+    socket_local = socket(AF_INET, SOCK_STREAM, 0);
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    // Associer le socket à l'adresse de l'interface
+    bind(socket_local, (struct sockaddr *)&address, sizeof(address));
+    
+    // Attendre une connexion entrante
+    listen(socket_local, 3);
+    socket_dist = accept(socket_local, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+
+    // Réception des messages
+    while(1) {
+        int datalen;
+        // Stocker le message
+        datalen = read(socket_dist, buffer, BUFFER_SIZE);
+        if (datalen == 0) {
+            printf("Déconnexion\n");
+            break;
+        } else { // Afficher le message
+            printf("Reçu: %s", buffer);
+            fflush(stdout); 
+        }
+        memset(buffer, 0, BUFFER_SIZE); 
+    }
+
+    close(socket_dist);
+    close(socket_local);
+    return buffer;    
+}
+
+void getConnectionValue(char str[]) {
+    char *token;
+    char team[10];
+    char status[10];
+    token = strtok(str, ":");
+    if (token != NULL) {
+        strcpy(team, token);
+    }
+    token = strtok(NULL, ":");
+    if (token != NULL) {
+        strcpy(status, token);
+    }
+    printf("RECEIVED - %s:%s\n", team, status);
 }
 
 int main() {
@@ -53,29 +110,13 @@ int main() {
         return 1;
     }
 
-    ///////// BTN /////////
-    sendStatus();
+    ///////// SEND /////////
+    // sendStatus();
 
-    ///////// SPLIT team:status /////////
-    char str[] = "1:1";
-
-    char *token;
-    char team[10];
-    char status[10];
-
-    token = strtok(str, ":");
-
-    if (token != NULL) {
-        strcpy(team, token);
-    }
-
-    token = strtok(NULL, ":");
-
-    if (token != NULL) {
-        strcpy(status, token);
-    }
-
-    printf("RECEIVED - TEAM: %s STATUS: %s\n", team, status);
+    ///////// RECEIVE /////////
+    // receiveStatus();
+    char str[] = "1:0";
+    getConnectionValue(str);
 
     ///////// MATRIX /////////
     // Récupérer le référence ("handle") de la matrice
@@ -96,29 +137,9 @@ int main() {
         i2cWriteByteData(handle, i, 0x00);
     }
 
-    unsigned char binaryData = 0;
-    
-
-
-    printf("%d\n", binaryData);
-
-    // Allumer puis éteindre la 1ère rangée (0)
-    i2cWriteByteData(handle, 0x0e, 0xFF);
+    i2cWriteByteData(handle, 0x0e, 128);
     time_sleep(1);
     i2cWriteByteData(handle, 0x0e, 0x00);
-
-    // Allumer puis éteindre la dernière rangée (14 ou 0e)
-    // i2cWriteByteData(handle, 0x0e, 0xFF);
-    // time_sleep(1);
-    // i2cWriteByteData(handle, 0x0e, 0x00);
-
-    // Allumer puis éteindre les 4 LED des coins (10000001 = 128 = 0x81)
-    // i2cWriteByteData(handle, 0x00, 0x81);
-    // i2cWriteByteData(handle, 0x0e, 0x81);
-    // time_sleep(1);
-    // i2cWriteByteData(handle, 0x00, 0x00);
-    // i2cWriteByteData(handle, 0x0e, 0x00);
-
 
     // Fermer et terminer
     i2cClose(handle);
