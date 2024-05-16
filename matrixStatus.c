@@ -86,7 +86,7 @@ char receiveStatus() {
     return buffer;    
 }
 
-void getConnectionValue(char str[]) {
+void storeTeamStates(char str[]) {
     char *token;
     char team[10];
     char status[10];
@@ -101,49 +101,66 @@ void getConnectionValue(char str[]) {
     printf("RECEIVED - %s:%s\n", team, status);
 }
 
-int main() {
-    int handle;
-
-    // Initialiser pigpio
-    if (gpioInitialise() < 0) {
-        printf("Erreur d'initialisation pigpio\n");
-        return 1;
+unsigned char getMatrixState(int teams[], int states[]) {
+    unsigned char matrixState = 0;
+    
+    for (int i = 0; i < 8; i++) {
+        if (states[i] == 1) {
+            matrixState |= (1 << (teams[i] - 1));
+        }
     }
+    
+    return matrixState;
+}
+
+int main() {
+    // Initialiser pigpio
+    // if (gpioInitialise() < 0) {
+    //     printf("Erreur d'initialisation pigpio\n");
+    //     return 1;
+    // }
 
     ///////// SEND /////////
     // sendStatus();
 
     ///////// RECEIVE /////////
     // receiveStatus();
-    char str[] = "1:0";
-    getConnectionValue(str);
+    // storeTeamStatus(str);
+
+    int teams[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    int states[] = {0, 0, 0, 0, 0, 0, 0, 1}; 
+        
+    unsigned char matrixState = getMatrixState(teamNumbers, states);
+    
+    printf("matrixState: %u\n", matrixState);
 
     ///////// MATRIX /////////
+    // int handle;
     // Récupérer le référence ("handle") de la matrice
-    handle = i2cOpen(1, ADR_I2C, 0);
+    // handle = i2cOpen(1, ADR_I2C, 0);
     
-    if (handle < 0) {
-        printf("Erreur d'accès à la matrice LED\n");
-        gpioTerminate();
-        return 1;
-    }
+    // if (handle < 0) {
+    //     printf("Erreur d'accès à la matrice LED\n");
+    //     gpioTerminate();
+    //     return 1;
+    // }
 
-    // Initialiser la matrice
-    i2cWriteByteData(handle, ADR_SYS_MATRICE | 1, 0x00);
-    i2cWriteByteData(handle, ADR_AFFICHAGE_MATRICE | 1, 0x00);
+    // // Initialiser la matrice
+    // i2cWriteByteData(handle, ADR_SYS_MATRICE | 1, 0x00);
+    // i2cWriteByteData(handle, ADR_AFFICHAGE_MATRICE | 1, 0x00);
 
-    // Tout éteindre
-    for (int i=0;i<0x0E;i+=2) {
-        i2cWriteByteData(handle, i, 0x00);
-    }
+    // // Tout éteindre
+    // for (int i=0;i<0x0E;i+=2) {
+    //     i2cWriteByteData(handle, i, 0x00);
+    // }
 
-    i2cWriteByteData(handle, 0x0e, 128);
-    time_sleep(1);
-    i2cWriteByteData(handle, 0x0e, 0x00);
+    // i2cWriteByteData(handle, 0x0e, 128);
+    // time_sleep(1);
+    // i2cWriteByteData(handle, 0x0e, 0x00);
 
-    // Fermer et terminer
-    i2cClose(handle);
-    gpioTerminate();
+    // // Fermer et terminer
+    // i2cClose(handle);
+    // gpioTerminate();
 
     return 0;
 }
